@@ -2,7 +2,7 @@
   "name": "Clock with calendar event list",
   "shortName":"CalClockList",
   "version":"0.04",
-  "description": "Clock with the next 3 calendar events. Based on the [calclok](https://banglejs.com/apps/?q=calclock) app.",
+  "description": "Clock with the next 3 calendar events. Based on the [calclock](https://banglejs.com/apps/?q=calclock) app.",
   "icon": "calclockg.png",
   "type": "clock",
   "tags": "clock agenda",
