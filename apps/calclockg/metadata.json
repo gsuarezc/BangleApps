@@ -1,0 +1,15 @@
+{ "id": "calclockg",
+  "name": "Clock with calendar event list",
+  "shortName":"CalClockList",
+  "version":"0.04",
+  "description": "Clock with the next 3 calendar events. Based on the [calclok](https://banglejs.com/apps/?q=calclock) app.",
+  "icon": "calclockg.png",
+  "type": "clock",
+  "tags": "clock agenda",
+  "supports" : ["BANGLEJS2"],  
+  "readme": "README.md",
+  "storage": [
+    {"name":"calclockg.app.js","url":"calclockg.app.js"},
+    {"name":"calclockg.img","url":"calclockg-icon.js","evaluate":true}
+  ]
+}
