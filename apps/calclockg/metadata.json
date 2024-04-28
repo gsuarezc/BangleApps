@@ -6,8 +6,7 @@
   "icon": "calclockg.png",
   "type": "clock",
   "tags": "clock agenda",
-  "supports" : ["BANGLEJS2"],  
-  "readme": "README.md",
+  "supports": ["BANGLEJS2"],
   "storage": [
     {"name":"calclockg.app.js","url":"calclockg.app.js"},
     {"name":"calclockg.img","url":"calclockg-icon.js","evaluate":true}
