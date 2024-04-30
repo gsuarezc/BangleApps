@@ -1,0 +1,21 @@
+{ "id": "widaltbar",
+  "name": "Barometic Elevation calculator",
+  "shortName":"Bar. Elev. calc.",
+  "version": "0.01",
+  "description": "This app calculates the elevantion using the pressure and temperature provided by [OpenWeatherMap weather provider](https://banglejs.com/apps/#owmweather) and the internal barometer. It also obtains the elevation data from the [Open-Meteo Elevation API](https://open-meteo.com/en/docs/elevation-api).",
+  "icon": "app.png",
+  "type": "bootloader",
+  "tags": "boot,tool,weather,widget",
+  "supports" : ["BANGLEJS2"],
+  "readme": "README.md",
+  "data": [
+    {"name":"widaltbar.json"}
+  ],
+  "storage": [
+    {"name":"widaltbar.default.json","url":"default.json"},
+    {"name":"widaltbar.boot.js","url":"boot.js"},
+    {"name":"widaltbar","url":"lib.js"},
+    {"name":"widaltbar.settings.js","url":"settings.js"},
+    {"name":"widaltbar.wid.js","url":"wid.js"}
+  ]
+}
