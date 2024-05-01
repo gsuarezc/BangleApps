@@ -32,7 +32,7 @@ exports.pull = function(completionCallback) {
     require('Storage').readJSON("widaltbar.default.json", true) || {},
     require('Storage').readJSON("widaltbar.json", true) || {}
   );
-  let uri = "https://api.open-meteo.com/v1/elevation?latitude=" + location.lat.toFixed(2) + "&longitude=" + location.lon.toFixed(2);
+  let uri = "https://api.open-meteo.com/v1/elevation?latitude=" + location.lat.toFixed(5) + "&longitude=" + location.lon.toFixed(5);
   if (Bangle.http){
     if(settings.weather.lat != location.lat && settings.weather.lon != location.lon){
       Bangle.http(uri, {timeout:10000}).then(event => {
