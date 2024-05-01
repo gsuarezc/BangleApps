@@ -13,6 +13,7 @@
 
   if (settings.enabled) {    
     let weather = require("Storage").readJSON('widaltbar.json') || {};
+    let lastUpdate;
     if (weather && weather.weather && weather.weather.time) lastUpdate = weather.weather.time;
 
     if (!settings.updated || settings.updated + settings.refresh * 1000 * 60 < Date.now()){
