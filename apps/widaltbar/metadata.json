@@ -1,7 +1,7 @@
 { "id": "widaltbar",
   "name": "Barometic Elevation calculator",
   "shortName":"Bar. Elev. calc.",
-  "version": "0.01",
+  "version": "0.02",
   "description": "This app calculates the elevantion using the pressure and temperature provided by [OpenWeatherMap weather provider](https://banglejs.com/apps/#owmweather) and the internal barometer. It also obtains the elevation data from the [Open-Meteo Elevation API](https://open-meteo.com/en/docs/elevation-api).",
   "icon": "app.png",
   "type": "bootloader",
