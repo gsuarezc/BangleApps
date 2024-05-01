@@ -30,10 +30,10 @@
   }
 
   Bangle.on("pressure", (p) => {
-    if (p.pressure.toFixed(1) != lastBar) {
-      lastBar = p.pressure.toFixed(1);
+    if (p.pressure.toFixed(2) != lastBar) {
+      lastBar = p.pressure.toFixed(2);
       if (hpa && temp) {
-        alt = (calcAlt(lastBar * 100, hpa * 100, temp)).toFixed(0);
+        alt = Math.round(calcAlt(lastBar * 100, hpa * 100, temp));
       }
       WIDGETS.openmwid.draw();
     }
@@ -61,7 +61,7 @@
     let c = (g.stringMetrics(alt));
     let o = (g.stringMetrics(elev));
     g.drawImage(atob("EBCBAAAAAAAIAAwgFXAX0BCYIIggTD/EYPZADkACf/4AAAAA"), this.x + 1, this.y-1, { scale: 0.6 });
-    g.setFontAlign(0, 0).drawString(alt,  this.x + width / 2 + (c.width/2), this.y + height - o.height - (c.height / 2));
+    g.setFontAlign(0, 0).drawString(alt,  this.x + width / 2, this.y + height - o.height - (c.height / 2));
     g.setFontAlign(1, 0).drawString(elev, this.x + width / 2 + 3, this.y + height - o.height / 2);
   }
   // First run
