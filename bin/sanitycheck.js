@@ -100,6 +100,7 @@ var KNOWN_WARNINGS = [
   "App loadingscreen has a setting file but no corresponding data entry (add `\"data\":[{\"name\":\"loadingscreen.settings.json\"}]`)",
   "App trex has a setting file but no corresponding data entry (add `\"data\":[{\"name\":\"trex.settings.json\"}]`)",
   "widhwt isn't an app (widget) but has an app.js file (widhwtapp.js)",
+  "Clock calclockg file calls loadWidgets before setUI (clock widget/etc won't be aware a clock app is running)",
 ];
 
 function globToRegex(pattern) {
