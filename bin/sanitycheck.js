@@ -218,6 +218,7 @@ var KNOWN_WARNINGS = [
   "App widhrm file widhrm.settings.js should be evaluated as a function but doesn't end in ')'",
   "App widmp file widmp.settings.js should be evaluated as a function but doesn't end in ')'",
   "App widsleepstatus file widsleepstatus.settings.js should be evaluated as a function but doesn't end in ')'",
+  "Clock calclockg file calls loadWidgets before setUI (clock widget/etc won't be aware a clock app is running)",
 ];
 
 var apps = [];
