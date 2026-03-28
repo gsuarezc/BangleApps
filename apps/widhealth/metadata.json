@@ -1,7 +1,7 @@
 {
   "id": "widhealth",
   "name": "Health widget with confidence",
-  "version": "0.02",
+  "version": "0.03",
   "description": "Shows the last HRM measurement of the health app along with the confidence value.",
   "icon": "widget.png",
   "type": "widget",
