@@ -1,3 +1,4 @@
 0.01: New Widget!
 0.02: Change font size
 0.03: Fix interval leak, crash on missing health data, and clearRect off-by-one
+0.04: Fix BPM display overflow when heart rate is 3 digits

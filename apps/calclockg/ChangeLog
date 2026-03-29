@@ -1,5 +1,6 @@
 0.01: New App!
 0.02: Bump version and fix typos
 0.03: Fix app type
-0.04: Add "buzzForEvents" from [calclok](https://banglejs.com/apps/?q=calclock) code
+0.04: Add "buzzForEvents" from calclok (https://banglejs.com/apps/?q=calclock) code
 0.05: Performance improvements and fix widget load order
+0.06: Fix buzz patterns for 30/15/1 min event reminders, display event title and location in uppercase

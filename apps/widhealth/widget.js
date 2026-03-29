@@ -11,7 +11,7 @@
     g.setColor(g.theme.bg);
     g.clearRect(this.x, this.y, this.x + width, this.y + height);
     g.setColor(g.theme.fg);
-    g.setFont("6x8", 2).setFontAlign(0, 0);
+    g.setFont("6x8", bpm >= 100 ? 1 : 2).setFontAlign(0, 0);
     g.drawString(bpm, this.x + width / 2, this.y + 6);
     g.setFont("6x8").setFontAlign(0, 0);
     g.drawString(con, this.x + width / 2, this.y + height - 4);

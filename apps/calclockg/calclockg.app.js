@@ -77,20 +77,20 @@
     // Truncate long strings at load time so wrapString never processes huge strings at draw time
     for (let i = 0; i < calendar.length; i++) {
       let e = calendar[i];
-      if (e.title && e.title.length > 32) e.title = e.title.slice(0, 32);
-      if (e.location && e.location.length > 32) e.location = e.location.slice(0, 32);
+      if (e.title) e.title = e.title.toUpperCase().slice(0, 32);
+      if (e.location) e.location = e.location.toUpperCase().slice(0, 32);
     }
   };
-  
+
   let buzzForEvents = function(event) {
     // No buzz for all day events or events before 7am
     // TODO: make this configurable
     if (event.allDay || (new Date(event.timestamp * 1000)).getHours() < 7) return;
     let minToEvent = Math.round((event.timestamp - getTime()) / 60.0);
     switch (minToEvent) {
-      case 30: require("buzz").pattern(":"); break;
-      case 15: require("buzz").pattern(", ,"); break;
-      case 1: require("buzz").pattern(": : :"); break;
+      case 30: require("buzz").pattern(":");   break; // 1× short strong
+      case 15: require("buzz").pattern(": :"); break; // 2× short strong
+      case 1:  require("buzz").pattern("= ="); break; // 2× long strong
     }
   };
 
