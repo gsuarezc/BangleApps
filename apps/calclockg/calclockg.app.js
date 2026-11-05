@@ -1,5 +1,4 @@
 {
-  Bangle.loadWidgets();
   // var sTimeS = new Date();
   let calendar = [];
   let e3time = ["", "", ""];
@@ -168,9 +167,6 @@
     drawTimeout = setTimeout(fullRedraw, 60000 - (Date.now() % 60000));
   };
 
-  updateCalendar();
-  g.clear();
-  fullRedraw();
   Bangle.setUI({
     mode: "clock",
     remove: function () {
@@ -181,6 +177,12 @@
     }
 
   });
+  // loadWidgets after setUI (so widgets know a clock is running) and before the
+  // first layout render (Layout reads Bangle.appRect, which depends on widgets)
+  Bangle.loadWidgets();
+  updateCalendar();
+  g.clear();
+  fullRedraw();
   setTimeout(Bangle.drawWidgets, 0);
 
 }

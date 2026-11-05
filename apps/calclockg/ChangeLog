@@ -5,3 +5,4 @@
 0.05: Performance improvements and fix widget load order
 0.06: Fix buzz patterns for 30/15/1 min event reminders, display event title and location in uppercase
 0.07: Fix restore color when no events
+0.08: Fix widget load order (setUI before loadWidgets, before first Layout render)
