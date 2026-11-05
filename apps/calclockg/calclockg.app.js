@@ -1,16 +1,10 @@
 {
-  // var sTimeS = new Date();
   let calendar = [];
   let e3time = ["", "", ""];
   let e3title = ["", "", ""];
-  //let current = [];
-  //let next = [];
-  //let gh = g.getHeight();
   let gw = g.getWidth();
   let drawTimeout;
-  let updateCalTimer;
   const locale = require("locale");
-
 
   let Layout = require("Layout");
   let layout = new Layout({
@@ -23,23 +17,23 @@
       },
       {
         type: "v", c: [
-          { type: "txt", fillx: 1, font: "Vector:13", label: "Etime", id: "cal111", align: -1 },
-          { type: "txt", fillx: 1, font: "Vector:13", label: "cal 1.2", id: "cal12", align: -1 },
-          { type: "txt", fillx: 1, font: "6x8", label: "cal 1.3", id: "cal13", align: -1 }
+          { type: "txt", fillx: 1, font: "Vector:13", label: "Etime", id: "cal111" },
+          { type: "txt", fillx: 1, font: "Vector:13", label: "cal 1.2", id: "cal12" },
+          { type: "txt", fillx: 1, font: "6x8", label: "cal 1.3", id: "cal13" }
         ]
       },
       {
         type: "v", c: [
-          { type: "txt", fillx: 1, font: "Vector:13", label: "Etime", id: "cal211", align: -1 },
-          { type: "txt", fillx: 1, font: "Vector:13", label: "cal 2.2", id: "cal22", align: -1 },
-          { type: "txt", fillx: 1, font: "6x8", label: "-", id: "cal23", align: -1 }
+          { type: "txt", fillx: 1, font: "Vector:13", label: "Etime", id: "cal211" },
+          { type: "txt", fillx: 1, font: "Vector:13", label: "cal 2.2", id: "cal22" },
+          { type: "txt", fillx: 1, font: "6x8", label: "-", id: "cal23" }
         ]
       },
       {
         type: "v", c: [
-          { type: "txt", fillx: 1, font: "Vector:13", label: "Etime", id: "cal311", align: -1 },
-          { type: "txt", fillx: 1, font: "Vector:13", label: "cal 3.2", id: "cal32", align: -1 },
-          { type: "txt", fillx: 1, font: "6x8", label: "cal 3.3", id: "cal33", align: -1 }
+          { type: "txt", fillx: 1, font: "Vector:13", label: "Etime", id: "cal311" },
+          { type: "txt", fillx: 1, font: "Vector:13", label: "cal 3.2", id: "cal32" },
+          { type: "txt", fillx: 1, font: "6x8", label: "cal 3.3", id: "cal33" }
         ]
       }
     ]
@@ -55,12 +49,13 @@
     return timeActive >= 0 && timeActive <= event.durationInSeconds;
   };
 
-  let cutText = function (text,font) {
-    let lines = g.setFont(font).wrapString(text, gw - g.stringWidth("<"));
-    if (lines.length > 1) {
-      lines = lines.slice(0, 2);
-      lines[0] += "<";
-    }
+  // Pre-compute max widths once to avoid repeated font-set + stringWidth calls on every draw
+  let maxW13 = gw - g.setFont("Vector:13").stringWidth("<");
+  let maxW6x8 = gw - g.setFont("6x8").stringWidth("<");
+
+  let cutText = function (text, font, maxW) {
+    let lines = g.setFont(font).wrapString(text, maxW);
+    if (lines.length > 1) return lines[0] + "<";
     return lines[0];
   };
 
@@ -71,15 +66,31 @@
   };
 
   let updateCalendar = function () {
-    calendar = require("Storage").readJSON("android.calendar.json", true) || [];
-    let calendar2 = calendar.filter(e => isActive(e) || getTime() <= e.timestamp);
-    calendar2 = calendar2.sort((a, b) => a.timestamp - b.timestamp);
-    calendar = calendar2;
-    if (updateCalTimer) clearTimeout(updateCalTimer);
-    updateCalTimer = setTimeout(function () {
-      updateCalTimer = undefined;
-      updateCalendar();
-    }, (10 * 55000) - (Date.now() % (10 * 55000)));
+    let raw = require("Storage").readJSON("android.calendar.json", true) || [];
+    let now = getTime();
+    // Keep only upcoming/active events, sort, and limit to 3 to save RAM
+    calendar = raw
+      .filter(e => (e.timestamp + e.durationInSeconds) >= now)
+      .sort((a, b) => a.timestamp - b.timestamp)
+      .slice(0, 3);
+    // Truncate long strings at load time so wrapString never processes huge strings at draw time
+    for (let i = 0; i < calendar.length; i++) {
+      let e = calendar[i];
+      if (e.title) e.title = e.title.toUpperCase().slice(0, 32);
+      if (e.location) e.location = e.location.toUpperCase().slice(0, 32);
+    }
+  };
+
+  let buzzForEvents = function(event) {
+    // No buzz for all day events or events before 7am
+    // TODO: make this configurable
+    if (event.allDay || (new Date(event.timestamp * 1000)).getHours() < 7) return;
+    let minToEvent = Math.round((event.timestamp - getTime()) / 60.0);
+    switch (minToEvent) {
+      case 30: require("buzz").pattern(":");   break; // 1× short strong
+      case 15: require("buzz").pattern(": :"); break; // 2× short strong
+      case 1:  require("buzz").pattern("= ="); break; // 2× long strong
+    }
   };
 
   let drawEvent = function (event, row) {
@@ -90,12 +101,7 @@
     // Event Header (time + date)
     timeStr = zp(time.getHours()) + ":" + zp(time.getMinutes()) + " " + zp(time.getDate()) + '.' + zp(time.getMonth() + 1) + " | " + zp(timeEnd.getHours()) + ":" + zp(timeEnd.getMinutes()) + " " + zp(timeEnd.getDate()) + "." + zp(timeEnd.getMonth() + 1);
 
-    let now = new Date();
-    now = Date(now.setMilliseconds(0));
-    if (time == now) {
-      Bangle.buzz(600, 0.2);
-    }
-
+    buzzForEvents(event);
     eBack(event, row);
 
     if (event.timestamp != e3time[row - 1] || event.title != e3title[row - 1]) {
@@ -104,11 +110,10 @@
 
       layout['cal' + row.toString() + '11'].label = timeStr;
 
-      layout['cal' + row.toString() + '2'].label = cutText(event.title,"Vector:13");
-      // layout['cal' + row.toString() + '2'].label = cutText(event.title);
+      layout['cal' + row.toString() + '2'].label = cutText(event.title, "Vector:13", maxW13);
 
       if (event.location) {
-        layout['cal' + row.toString() + '3'].label = cutText(">" + event.location,"6x8");
+        layout['cal' + row.toString() + '3'].label = cutText(">" + event.location, "6x8", maxW6x8);
       } else {
         layout['cal' + row.toString() + '3'].label = "";
       }
@@ -116,43 +121,30 @@
   };
 
   let drawFutureEvents = function () {
+    // calendar is already filtered (no expired) and capped at 3 by updateCalendar
     let y = 1;
-    for (let e of calendar) {
-      let expiredE = new Date(e.timestamp * 1000 + e.durationInSeconds * 1000);
-      if (expiredE < Date.now()) {
-        continue;
-      } else {
-        drawEvent(e, y);
-        y++;
-      }
-      if (y > 3) {
-        break;
-      }
+    for (let i = 0; i < calendar.length && y <= 3; i++, y++) {
+      drawEvent(calendar[i], y);
     }
-    if (y < 4) {
-      for (let j = y; j < 4; j++) {
-        let p = 'cal' + j.toString();
-        if (e3time[j - 1] !== "" || layout[p + '11'].label != "") {
-          layout[p + '11'].label = "";
-          layout[p + '2'].label = "";
-          layout[p + '2'].col = g.theme.fg;
-          layout[p + '2'].bgCol = g.theme.bg;
-          layout[p + '3'].label = "";
-          e3time[j - 1] = "";
-          e3title[j - 1] = "";
-        }
-
+    // Clear unused rows
+    for (let j = y; j < 4; j++) {
+      if (layout['cal' + j + '11'].label !== "") {
+        layout['cal' + j + '11'].label = "";
+        layout['cal' + j + '2'].label = "";
+        layout['cal' + j + '2'].col = g.theme.fg;
+        layout['cal' + j + '2'].bgCol = g.theme.bg;
+        layout['cal' + j + '3'].label = "";
       }
     }
   };
 
   let fullRedraw = function () {
+    updateCalendar();
     g.reset();
     let d = new Date();
     layout.time.label = locale.time(d, 1);
-    layout.date.label = `${zp(d.getDate())}.${zp(d.getMonth() + 1)}\n${locale.dow(d, 1)} ${calendar.length}`;
+    layout.date.label = `${zp(d.getDate())}.${zp(d.getMonth() + 1)}\n${locale.dow(d, 1)}`;
     drawFutureEvents();
-
     layout.render();
     if (drawTimeout) clearTimeout(drawTimeout);
     drawTimeout = setTimeout(fullRedraw, 60000 - (Date.now() % 60000));
@@ -162,20 +154,12 @@
     mode: "clock",
     remove: function () {
       if (drawTimeout) clearTimeout(drawTimeout);
-      if (updateCalTimer) clearTimeout(updateCalTimer);
-      // remove info
-      Layout = layout = e3time = e3title = drawTimeout = calendar = updateCalTimer = undefined;
+      Layout = layout = e3time = e3title = drawTimeout = calendar = undefined;
     }
-
   });
-  // loadWidgets after setUI (so widgets know a clock is running) and before the
-  // first layout render (Layout reads Bangle.appRect, which depends on widgets)
   Bangle.loadWidgets();
-  updateCalendar();
   g.clear();
   fullRedraw();
-  setTimeout(Bangle.drawWidgets, 0);
+  Bangle.drawWidgets();
 
 }
-
-
