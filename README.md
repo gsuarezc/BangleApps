@@ -254,7 +254,7 @@ and which gives information about the app for the Launcher.
   "name": "Readable name",    // readable name
   "shortName": "Short name",  // short name for launcher
   "version": "0.01",          // the version of this app
-  "author": "github_username",// username of app author (can be an array - ["author1", "author2"], used for tagging in PRs for the app)
+  "author": "github_username",// username of app author (GitHub username or 'Espruino' for anonymity)
   "description": "...",       // long description (can contain markdown)
   "icon": "icon.png",         // icon in apps/
   "screenshots" : [ { "url":"screenshot.png" } ], // optional screenshot for app
@@ -287,7 +287,7 @@ and which gives information about the app for the Launcher.
                               //   'system' - used by the system
                               //   'clkinfo' - provides or uses clock_info module for data on your clock face or clocks that support it (see apps/clock_info/README.md)
                               //   'health' - e.g. heart rate monitors or step counting
-  "supports": ["BANGLEJS2"],  // List of device IDs supported, either BANGLEJS or BANGLEJS2
+  "supports": ["BANGLEJS2"],  // List of device IDs supported, either BANGLEJS, BANGLEJS2, BANGLEJS3 or BANGLEJS3_COMPAT(faking the 176x176 LCD)
   "dependencies" : { "notify":"type" } // optional, app 'types' we depend on (see "type" above)
   "dependencies" : { "messages":"app" } // optional, depend on a specific app ID
                               // for instance this will use notify/notifyfs is they exist, or will pull in 'notify'
@@ -296,6 +296,7 @@ and which gives information about the app for the Launcher.
   "provides_modules" : ["messageicons"] // optional, this app provides a module that can be used with 'require'
   "provides_widgets" : ["battery"] // optional, this app provides a type of widget - 'alarm/battery/bluetooth/pedometer/message'
   "provides_features" : ["welcome"] // optional, this app provides some feature, used to ensure two aren't installed at once. Currently just 'welcome'
+  "requires_firmware" : "2v20", // optional, specify a minimum firmware version your app needs to work properly
   "default" : true,           // set if an app is the default implementer of something (a widget/module/etc)
   "readme": "README.md",      // if supplied, a link to a markdown-style text file
                               // that contains more information about this app (usage, etc)
@@ -565,26 +566,21 @@ You can use `g.setColor(r,g,b)` OR `g.setColor(16bitnumber)` - some common 16 bi
 
 ## Fonts
 
-A recent addition to Bangle.js is the ability to use extra fonts with support for more characters.
-For example [all regions](https://banglejs.com/apps/?id=fontall) or [extended](https://banglejs.com/apps/?id=fontext) fonts.
+Bangle.js comes with several fonts for standard Latin (ISO8859-1) character sets (you can run `g.getFonts()` in the REPL to see a list),
+however you can also install 'font apps' with support for more characters. You [can see a list of available fonts here](https://banglejs.com/apps/?c=fonts).
 
-Once installed, these apps cause a new font, `Intl` to be added to `Graphics`, which can be used with just `g.setFont("Intl")`.
+For example:
 
-There is also a `font` library - this is not implemented yet, but more information about the planned implementation
-is available at https://github.com/espruino/BangleApps/issues/3109
+* [All regions](https://banglejs.com/apps/?id=fontall) is a 16px font that supports over 50,000 characters (nearly all languages), but is 2MB
+* [Extended](https://banglejs.com/apps/?id=fontext) is a 16px font that supports 150 languages but is only 20kb
 
-For now, to make your app work with the international font, you can check if `Graphics.prototype.setFontIntl` exists,
-and if so you can change the font you plan on using:
+Once installed, these apps cause a new font, `Intl` to be added to `Graphics`, which can be used with `g.setFont("Intl")` or `g.setFont("Intl:2")` for a double-size font. Main apps like `Messages` will automatically use it when needed, as will built-in functions like `E.showMessage` and `E.showMenu`.
 
-```JS
-myFont = "6x8:2";
-if (Graphics.prototype.setFontIntl)
-  myFont = "Intl";
-```
+The best solution for apps is to use [`g.findFont(text, options)`](https://www.espruino.com/Reference#l_Graphics_findFont) to find the best font to display the supplied text,
+and this will choose an International font if it is installed and the given text contains characters that can't be rendered in other fonts. If you plan to use `g.setFont("Intl")` directly in your app, make sure your app either depends on the `fonts` module, or check if the international font is installed first with `if (Graphics.prototype.setFontIntl) ...`.
 
-Any new Font library must contain the metadata `"icon": "app.png", "tags": "font", "type": "module", "provides_modules" : ["fonts"],`
-and should provide a `font` library, as well as a `boot.js` that adds `Graphics.prototype.setFontIntl`. If you plan on
-making a new library it's best to just copy one of the existing ones for now.
+If you're making a new Font library, it should contain the metadata `"icon": "app.png", "tags": "font", "type": "module", "provides_modules" : ["fonts"],`
+and should provide a `font` library, as well as a `boot.js` that adds `Graphics.prototype.setFontIntl`. It would be best to use [one of the existing ones](https://banglejs.com/apps/?c=fonts) as a base.
 
 
 ## API Reference

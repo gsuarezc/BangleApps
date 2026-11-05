@@ -6,6 +6,10 @@
     body,
     sender,
     tel:string,
+    reply:bool,
+    positive:bool,
+    negative:bool,
+    actions: [{title:string}],
     new:true // not read yet
   }
 */
@@ -154,8 +158,8 @@ function showMapMessage(msg) {
     distance = require("locale").distance(msg.distance);
   if (msg.instr) {
     var instr = msg.instr.replace(/\s*\/\s*/g," \/\n"); // convert slashes to newlines
-    if (instr.includes("towards") || instr.includes("toward")) {
-      m = instr.split(/towards|toward/);
+    m = instr.split(/towards|toward/);
+    if (m.length>1) {
       target = m[0].trim();
       street = m[1].trim();
     }else
@@ -300,6 +304,44 @@ function showMusicMessage(msg) {
   }, 400);
 }
 
+function showActionsMenu(msg) {
+  cancelReloadTimeout();
+  var menu = {"":{ title:/*LANG*/"Actions", back:() => showMessage(msg.id, true) }};
+  if (msg.reply && reply)
+    menu[/*LANG*/"Reply"] = () => {
+      msg.new = false;
+      replying = true;
+      reply.reply({msg:msg})
+        .then(r => {
+          Bluetooth.println(JSON.stringify(r));
+          replying=false;
+          returnToCheckMessages();
+        })
+        .catch(() => { 
+          replying=false; 
+          showMessage(msg.id); 
+        });
+    };  
+  // Custom actions
+  if (msg.actions) 
+    msg.actions.forEach((action, idx) => {
+      menu[action.title] = () => {
+        msg.new = false;
+        Bluetooth.println("");
+        Bluetooth.println(JSON.stringify({t:"notify",n:"INVOKE_ACTION",id:msg.id,action:idx}));
+        returnToCheckMessages();
+      };
+    });
+  if (msg.positive)
+    menu[/*LANG*/"Open"] = () => {
+      msg.new = false; 
+      cancelReloadTimeout(); 
+      Bangle.messageResponse(msg,true); 
+      returnToCheckMessages();
+    };
+  E.showMenu(menu);
+}
+
 function showMessageSettings(msg) {
   active = "settings";
   var menu = {"":{
@@ -312,6 +354,10 @@ function showMessageSettings(msg) {
   showMessage to the message list, so add the option here */
   if (process.env.BOARD=="BANGLEJS")
     menu[/*LANG*/"Message List"] = () => { returnToMain(); };
+
+  if (msg.actions && msg.actions.length) {
+    menu[/*LANG*/"Actions"] = ()=>{ showActionsMenu(msg); };
+  }
 
   if (msg.reply && reply)
     menu[/*LANG*/"Reply"] = () => {
@@ -416,13 +462,18 @@ function showMessage(msgid, persist) {
   }
   if (body) { // Try and find a font that fits...
     let w = g.getWidth()-2, h = Bangle.appRect.h-80;
-    if (g.setFont(bodyFont).wrapString(body, w).length*g.getFontHeight() > h) {
-      bodyFont = fontBig;
-      if (settings.fontSize!=1 && g.setFont(bodyFont).wrapString(body, w).length*g.getFontHeight() > h) {
-        bodyFont = fontMedium;
+    try {
+      if (g.setFont(bodyFont).wrapString(body, w).length*g.getFontHeight() > h) {
+        bodyFont = fontBig;
+        if (settings.fontSize!=1 && g.setFont(bodyFont).wrapString(body, w).length*g.getFontHeight() > h) {
+          bodyFont = fontMedium;
+        }
       }
+      lines = g.setFont(bodyFont).wrapString(body, w);
+    } catch (e) {
+      console.log("Invalid message body", e);
+      lines = ["[Invalid message]"];
     }
-    lines = g.setFont(bodyFont).wrapString(body, w);
   }
   // By this point, `title` must be a string and `lines` must be an array of strings.
   // Either or both can be empty, but neither can be `undefined` (#3969).
@@ -449,7 +500,10 @@ function showMessage(msgid, persist) {
     else if (!ld)
       g.setFontAlign(-1,-1).drawString(date,r.x+6,r.y+5);
   }
-  if (msg.reply && reply) {
+  if (msg.actions && msg.actions.length) {
+    posHandler = ()=>{ showActionsMenu(msg); };
+    rowRightDraw = function(r) {g.setColor("#0f0").drawImage(atob("QRABAAAAAAAABwAAAAAAAMAHwAAAAAAAcAPgAAAAAAA8AOAAAAAAAB8AAAAAAAAAD8AAAH//////8BwAP//////8HwAf//////4PgA///////gOAAAAAAAB+AAAAAAAAAD4AAAAAAAAAHgBwAAAAAAAOAHwAAAAAAAYAPgAAAAAAAAAOAA=="),r.x+r.w-64,r.y+2);};
+  } else if (msg.reply && reply) {
     posHandler = ()=>{
       replying = true;
       msg.new = false;
@@ -636,7 +690,13 @@ function checkMessages(options) {
         // if the body includes an image, it probably won't be small enough to allow>1 line
         let maxLines = Math.floor(34/g.getFontHeight());
         if (body.includes("\0")) { maxLines=1; }
-        var l = g.wrapString(body, r.w-(x+8));
+        var l;
+        try {
+          l = g.wrapString(body, r.w-(x+8));
+        } catch(e) {
+          console.log("Invalid message body", e);
+          l = ["[Invalid message]"];
+        }
         if (l.length>maxLines) {
           l = l.slice(0,maxLines);
           l[l.length-1]+="...";

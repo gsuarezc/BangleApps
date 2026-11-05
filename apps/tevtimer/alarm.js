@@ -8,7 +8,46 @@ if (Bangle.SCHED) {
   delete Bangle.SCHED;
 }
 
+const sched = require("sched");
 const tt = require('tevtimer');
+
+function formatMS(ms) {
+  if (ms < 60000) {
+    // less than a minute → show seconds
+    return Math.round(ms / 1000) + "s";
+  } else {
+    // one minute or more → show minutes
+    return Math.round(ms / 60000) + "m";
+  }
+}
+
+function showSnoozeMenu(alarm) {
+
+  Bangle.buzz(40);
+
+  function onSnooze(snoozeTime) {
+    sched.snoozeAlarm(alarms, alarm, snoozeTime);
+    load();
+  }
+
+  let timerLength = alarm.timer;
+  let buttons = { "15s": 15, "30s": 30, "1m": 60, "2m": 120, "5m": 300 };
+  let formattedLength = formatMS(timerLength) + "*";
+  buttons[formattedLength] = Math.round(timerLength / 1000);
+  //different button lengths
+  E.showPrompt("Choose snooze length", {
+    title: "Snooze Options",
+    buttons
+  }).then(snoozeTime => onSnooze(snoozeTime * 1000));
+}
+
+// Regenerate the system alarms after altering a timer's state and
+// ensure the `alarms` list is up to date with the latest version of the
+// alarms.
+function recomputeAlarms() {
+  tt.update_system_alarms();
+  alarms = sched.getAlarms();
+}
 
 function showAlarm(alarm) {
   // Alert the user of the alarm and handle the response
@@ -21,16 +60,6 @@ function showAlarm(alarm) {
   }
   let message = timer.display_name() + '\n' + alarm.msg;
 
-  // Altering alarms from here is tricky. Making changes to timers
-  // requires calling tt.update_system_alarms() to update the system
-  // alarm list to reflect the new timer state. But that means we need
-  // to retrieve the alarms again from sched.getAlarms() before
-  // changing them ourselves or else we risk overwriting the changes.
-  // Likewise, after directly modifying alarms, we need to write them
-  // back with sched.setAlarms() before doing anything that will call
-  // tt.update_system_alarms(), or else the latter will work with an
-  // outdated list of alarms.
-
   // If there's a timer chained from this one, start it (only for
   // alarms not in snoozed status)
   var isChainedTimer = false;
@@ -42,10 +71,7 @@ function showAlarm(alarm) {
       chainTimer.start();
       tt.set_last_viewed_timer(chainTimer);
       isChainedTimer = true;
-
-      // Update system alarm list
-      tt.update_system_alarms();
-      alarms = require("sched").getAlarms();
+      recomputeAlarms();
     } else {
       console.warn("tevtimer: unable to find chained timer with ID " + timer.chain_id);
     }
@@ -63,37 +89,19 @@ function showAlarm(alarm) {
   // buzzCount should really be called buzzRepeat, so subtract 1
   let buzzCount = timer.buzz_count - 1;
 
-  // Alarm options for non-chained timer are OK (dismiss the alarm) and
-  // Snooze (retrigger the alarm after a delay).
-  // Alarm options for chained timer are OK (dismiss) and Halt (dismiss
-  // and pause the triggering timer).
-  let promptButtons = isChainedTimer
-    ? { 'Halt': 'halt', 'OK': 'ok' }
-    : { 'Snooze': 'snooze', 'OK': 'ok' };
-  E.showPrompt(message, {
-    title: 'tev timer',
-    buttons: promptButtons,
-  }).then(function (action) {
+  function doAlarmAction(action) {
+    let returnToApp = tt.SETTINGS.alarm_return;
     buzzCount = 0;
 
-    if (action === 'snooze') {
-      if (alarm.ot === undefined) {
-        alarm.ot = alarm.t;
-      }
-      let time = new Date();
-      let currentTime = (time.getHours()*3600000)+(time.getMinutes()*60000)+(time.getSeconds()*1000);
-      alarm.t = currentTime + settings.defaultSnoozeMillis;
-      alarm.t %= 86400000;
-      require("sched").setAlarms(alarms);
-
-      Bangle.emit("alarmSnooze", alarm);
+    if (action === 'snoozeCustom') {
+      showSnoozeMenu(alarm);
+      return;
     }
-    if (action === 'ok' || action === 'halt') {
-      let index = alarms.indexOf(alarm);
-      if (index !== -1) {
-        alarms.splice(index, 1);
-        require("sched").setAlarms(alarms);
-      }
+    if (action === 'snooze') {
+      sched.snoozeAlarm(alarms, alarm, settings.defaultSnoozeMillis);
+    }
+    if (action === 'ok' || action === 'okInvertReturn' || action === 'halt') {
+      sched.dismissAlarm(alarms, alarm);
       if (timer !== chainTimer) {
         timer.pause();
         if (tt.SETTINGS.auto_reset) {
@@ -101,22 +109,41 @@ function showAlarm(alarm) {
         }
       }
     }
+    if (action === 'okInvertReturn') {
+      returnToApp = !returnToApp;
+    }
     if (action === 'halt') {
       chainTimer.pause();
     }
-    tt.update_system_alarms();
-    alarms = require("sched").getAlarms();
+    recomputeAlarms();
 
-    Bangle.emit("alarmDismiss", alarm);
-
-    require("sched").setAlarms(alarms);
-
-    if (action === 'halt' || tt.SETTINGS.alarm_return) {
+    if (action === 'halt' || returnToApp) {
       load('tevtimer.app.js');
     } else {
       load();
     }
-  });
+  }
+
+  // Alarm options for non-chained timer are OK (dismiss the alarm) and
+  // Snooze (retrigger the alarm after a delay).
+  // Alarm options for chained timer are OK (dismiss) and Halt (dismiss
+  // and pause the triggering timer).
+  let prompt = {
+    title: "tev's timer",
+  }
+  prompt.buttons = isChainedTimer
+    ? { 'Halt': 'halt', 'OK': 'ok' }
+    : { 'Snooze': 'snooze', 'OK': 'ok' };
+  prompt.buttonsLong = {'OK': 'okInvertReturn'};
+  if (prompt.buttons.Snooze) {
+    prompt.buttonsLong.Snooze = 'snoozeCustom';
+  }
+  if (!settings.btnToStop && prompt.buttons.Snooze) {
+    prompt.back = () => doAlarmAction('snooze');
+  } else if (settings.btnToStop) {
+    prompt.back = () => doAlarmAction('ok');
+  }
+  E.showPrompt(message, prompt).then(doAlarmAction);
 
   function buzz() {
     // Handle buzzing and screen unlocking
@@ -146,8 +173,8 @@ function showAlarm(alarm) {
 }
 
 
-let alarms = require("sched").getAlarms();
-let activeAlarm = require("sched").getActiveAlarms(alarms).find(
+let alarms = sched.getAlarms();
+let activeAlarm = sched.getActiveAlarms(alarms).find(
   alarm => alarm.appid === 'tevtimer'
 );
 
