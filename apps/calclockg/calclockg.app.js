@@ -7,7 +7,6 @@
   //let next = [];
   //let gh = g.getHeight();
   let gw = g.getWidth();
-  let version = 'v8l5b4';
   let drawTimeout;
   let updateCalTimer;
   const locale = require("locale");
@@ -49,14 +48,6 @@
 
   let zp = function (str) {
     return ("0" + str).slice(-2);
-  };
-
-  let drawClock = function () {
-    // update time and date
-    var d = getTime();
-    layout.time.label = require("locale").time(d, 1);
-    layout.date.label = zp(d.getDate()) + "." + zp(d.getMonth() + 1) + "\n" + (require("locale").dow(d, 1)) + " " + calendar.length;
-    //layout.update();
   };
 
   let isActive = function (event) {

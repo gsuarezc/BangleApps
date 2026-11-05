@@ -6,3 +6,5 @@
 0.06: Fix buzz patterns for 30/15/1 min event reminders, display event title and location in uppercase
 0.07: Fix restore color when no events
 0.08: Fix widget load order (setUI before loadWidgets, before first Layout render)
+
+0.09: Remove unused variables (lint)
